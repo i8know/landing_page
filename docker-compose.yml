@@ -1,0 +1,70 @@
+services:
+  mongo:
+    image: mongo:latest
+    container_name: mongo-container
+    environment:
+      # MONGO_INITDB_ROOT_USERNAME: admin
+      # MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: db_kampus
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - mongo_network
+    command: mongod --noauth #
+    healthcheck:
+      # Use the mongo shell to ping the server; exit non-zero if not responding.
+      # The official MongoDB image typically includes a mongo shell binary.
+      test: ["CMD-SHELL", "mongo --eval \"db.adminCommand({ ping: 1 })\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express-container
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_BASICAUTH_ENABLED: 'true'
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: password
+    depends_on:
+      - mongo
+    networks:
+      - mongo_network
+
+  # --- INI ADALAH LAYANAN BARU YANG KITA TAMBAHKAN ---
+  api-server:
+    container_name: api-server-container
+    # 'build: ./api' memerintahkan Docker untuk mencari 'Dockerfile' 
+    # di dalam folder './api' dan membangun image dari sana.
+    build: ./api
+    ports:
+      # Kita ekspos port 3000 di kontainer ke port 3000 di komputer kita
+      - "3000:3000"
+    environment:
+      # Ini adalah environment variables yang dibaca oleh index.js
+      MONGO_HOST: mongo  # 'mongo' adalah nama service database kita
+      MONGO_USER: admin
+      MONGO_PASSWORD: password
+    networks:
+      - mongo_network
+    depends_on:
+      - mongo
+    # Jika aplikasi gagal mulai karena DB belum siap, biarkan Docker restart
+    # kontainer agar koneksi dicoba ulang.
+    restart: unless-stopped
+  # ---------------------------------------------------
+
+networks:
+  mongo_network:
+    driver: bridge
+
+volumes:
+  mongo-data:

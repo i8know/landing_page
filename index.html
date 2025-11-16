@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Paradise</title>
+    <link rel="icon" href="data:,">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin: 40px 0;
+            font-size: 3rem;
+        }
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            margin-bottom: 20px;
+            color: #feca57;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: rgba(26, 31, 58, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .card:hover {
+            border-color: #ff6b6b;
+            transform: translateY(-5px);
+        }
+        .card h3 {
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        .card p {
+            color: #aaa;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .tag {
+            background: rgba(255, 107, 107, 0.3);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            color: #feca57;
+        }
+        .stats {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9rem;
+            color: #888;
+        }
+        .price {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ff6b6b;
+            margin-top: 10px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+        }
+        .error {
+            background: rgba(255, 107, 107, 0.2);
+            border: 2px solid #ff6b6b;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎌 Anime Paradise</h1>
+
+        <!-- Posts Section -->
+        <div class="section">
+            <h2>📰 Latest Anime Articles</h2>
+            <div id="posts-loading" class="loading">Loading posts...</div>
+            <div id="posts-error" class="error" style="display: none;"></div>
+            <div id="posts-grid" class="grid"></div>
+        </div>
+
+        <!-- Products Section -->
+        <div class="section">
+            <h2>🛍️ Featured Merchandise</h2>
+            <div id="products-loading" class="loading">Loading products...</div>
+            <div id="products-error" class="error" style="display: none;"></div>
+            <div id="products-grid" class="grid"></div>
+        </div>
+    </div>
+
+    <script>
+        // API URL
+        const API_URL = 'http://localhost:3000/api';
+
+        // Format Rupiah
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Load Posts
+        async function loadPosts() {
+            const loadingEl = document.getElementById('posts-loading');
+            const errorEl = document.getElementById('posts-error');
+            const gridEl = document.getElementById('posts-grid');
+
+            try {
+                console.log('Fetching posts...');
+                const response = await fetch(API_URL + '/posts');
+                
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+
+                const posts = await response.json();
+                console.log('Posts loaded:', posts.length);
+                
+                loadingEl.style.display = 'none';
+
+                if (posts.length === 0) {
+                    gridEl.innerHTML = '<p>No posts yet</p>';
+                    return;
+                }
+
+                gridEl.innerHTML = posts.map(post => `
+                    <div class="card">
+                        <h3>${post.title}</h3>
+                        <p>${post.content.substring(0, 150)}...</p>
+                        ${post.tags ? '<div class="tags">' + post.tags.map(tag => '<span class="tag">#' + tag + '</span>').join('') + '</div>' : ''}
+                        <div class="stats">
+                            <span>👁️ ${post.views || 0}</span>
+                            <span>❤️ ${post.likes || 0}</span>
+                            <span>By ${post.author}</span>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading posts:', error);
+                loadingEl.style.display = 'none';
+                errorEl.style.display = 'block';
+                errorEl.innerHTML = '<strong>⚠️ Cannot load posts</strong><br>Error: ' + error.message + '<br>Make sure API is running on port 3000';
+            }
+        }
+
+        // Load Products
+        async function loadProducts() {
+            const loadingEl = document.getElementById('products-loading');
+            const errorEl = document.getElementById('products-error');
+            const gridEl = document.getElementById('products-grid');
+
+            try {
+                console.log('Fetching products...');
+                const response = await fetch(API_URL + '/produk');
+                
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+
+                const products = await response.json();
+                console.log('Products loaded:', products.length);
+                
+                loadingEl.style.display = 'none';
+
+                if (products.length === 0) {
+                    gridEl.innerHTML = '<p>No products yet</p>';
+                    return;
+                }
+
+                gridEl.innerHTML = products.map(product => `
+                    <div class="card">
+                        <h3>${product.nama}</h3>
+                        <p>${product.deskripsi.substring(0, 100)}...</p>
+                        <div class="price">${formatRupiah(product.harga)}</div>
+                        <div class="stats">
+                            <span>⭐ ${product.rating}/5</span>
+                            <span>📦 Stok: ${product.stok}</span>
+                            <span>🔥 Terjual: ${product.terjual}</span>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading products:', error);
+                loadingEl.style.display = 'none';
+                errorEl.style.display = 'block';
+                errorEl.innerHTML = '<strong>⚠️ Cannot load products</strong><br>Error: ' + error.message + '<br>Make sure API is running on port 3000';
+            }
+        }
+
+        // Load on page ready
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, fetching data...');
+            loadPosts();
+            loadProducts();
+        });
+    </script>
+</body>
+</html>
